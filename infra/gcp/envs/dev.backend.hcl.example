@@ -1,0 +1,2 @@
+bucket = "your-tf-state-bucket"
+prefix = "aws-gcp-cdc/gcp/dev"

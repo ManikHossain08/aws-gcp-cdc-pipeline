@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aws-gcp-cdc-pipeline"
+version = "1.0.0"
+description = "Cross-cloud CDC: AWS RDS PostgreSQL -> DMS -> S3 -> Glue -> GCS -> BigQuery, orchestrated by Airflow"
+readme = "README.md"
+# Development targets Python 3.11+. The runtime package also installs on Python 3.9 because
+# AWS Glue Python Shell (transfer job) only offers 3.9.
+requires-python = ">=3.9"
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+aws = ["boto3>=1.34"]
+gcp = ["google-cloud-storage>=2.18", "google-cloud-bigquery>=3.25", "google-auth>=2.35"]
+spark = ["pyspark==3.5.4"]
+local = ["duckdb>=1.4", "pyarrow>=17", "psycopg[binary]>=3.2"]
+dev = ["pytest>=8", "ruff==0.17.3", "mypy==2.4.1", "moto[s3]>=5", "types-PyYAML", "boto3-stubs"]
+
+[tool.setuptools.packages.find]
+include = ["cdc_common*", "glue*", "transfer*", "bigquery*"]
+exclude = ["*.tests", "*.tests.*"]
+
+[tool.pytest.ini_options]
+testpaths = ["cdc_common/tests", "glue/tests", "transfer/tests", "bigquery/tests", "airflow/tests"]
+pythonpath = [".", "airflow/plugins"]
+markers = ["spark: needs pyspark + Java (local Spark session)"]
+addopts = "-ra -p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "local_data", "dist", ".airflow_local"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "D1"]
+ignore = [
+  "E501",   # long SQL / log lines are clearer unwrapped
+  "S101",   # assert is fine in tests
+  "S608",   # SQL is built from validated identifiers only (see Dialect.ident)
+  "D100", "D104", "D105", "D107",
+  "UP017",  # keep timezone.utc: runtime package must import on Python 3.9 (Glue Python Shell)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["D1", "S"]
+"conftest.py" = ["D1"]
+"airflow/dags/*" = ["D1"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cdc_common", "glue", "transfer", "bigquery", "cdc_operators", "conftest", "scripts"]
+known-third-party = ["airflow"]  # the repo's airflow/ folder is not a package
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = false
+check_untyped_defs = true
+files = ["cdc_common", "transfer", "bigquery"]
+exclude = ["tests/"]

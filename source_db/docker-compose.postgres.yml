@@ -1,0 +1,34 @@
+# Local PostgreSQL with logical replication enabled (mirrors the RDS parameter group).
+#   docker compose -f source_db/docker-compose.postgres.yml up -d
+services:
+  postgres:
+    image: postgres:16.4
+    container_name: cdc-source-postgres
+    environment:
+      POSTGRES_DB: ${SOURCE_DB_NAME:-appdb}
+      POSTGRES_USER: ${SOURCE_DB_ADMIN_USER:-postgres}
+      # Local-only password; set it in .env (never reuse for any real environment).
+      POSTGRES_PASSWORD: ${SOURCE_DB_ADMIN_PASSWORD:?set SOURCE_DB_ADMIN_PASSWORD in .env}
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+      - -c
+      - wal_sender_timeout=0
+    ports:
+      - "${SOURCE_DB_PORT:-5432}:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

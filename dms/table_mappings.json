@@ -1,0 +1,62 @@
+{
+  "rules": [
+    {
+      "rule-type": "selection",
+      "rule-id": "1",
+      "rule-name": "include-public-customers",
+      "object-locator": {"schema-name": "public", "table-name": "customers"},
+      "rule-action": "include"
+    },
+    {
+      "rule-type": "selection",
+      "rule-id": "2",
+      "rule-name": "include-public-orders",
+      "object-locator": {"schema-name": "public", "table-name": "orders"},
+      "rule-action": "include"
+    },
+    {
+      "rule-type": "transformation",
+      "rule-id": "100",
+      "rule-name": "add-change-sequence",
+      "rule-target": "column",
+      "object-locator": {"schema-name": "public", "table-name": "%"},
+      "rule-action": "add-column",
+      "value": "_dms_change_seq",
+      "expression": "$AR_H_CHANGE_SEQ",
+      "data-type": {"type": "string", "length": 50}
+    },
+    {
+      "rule-type": "transformation",
+      "rule-id": "101",
+      "rule-name": "add-commit-timestamp",
+      "rule-target": "column",
+      "object-locator": {"schema-name": "public", "table-name": "%"},
+      "rule-action": "add-column",
+      "value": "_dms_commit_ts",
+      "expression": "$AR_H_COMMIT_TIMESTAMP",
+      "data-type": {"type": "datetime", "precision": 6}
+    },
+    {
+      "rule-type": "transformation",
+      "rule-id": "102",
+      "rule-name": "add-transaction-id",
+      "rule-target": "column",
+      "object-locator": {"schema-name": "public", "table-name": "%"},
+      "rule-action": "add-column",
+      "value": "_dms_transaction_id",
+      "expression": "$AR_H_TRANSACTION_ID",
+      "data-type": {"type": "string", "length": 50}
+    },
+    {
+      "rule-type": "transformation",
+      "rule-id": "103",
+      "rule-name": "add-source-table",
+      "rule-target": "column",
+      "object-locator": {"schema-name": "public", "table-name": "%"},
+      "rule-action": "add-column",
+      "value": "_dms_source_table",
+      "expression": "$AR_M_SOURCE_TABLE_NAME",
+      "data-type": {"type": "string", "length": 128}
+    }
+  ]
+}

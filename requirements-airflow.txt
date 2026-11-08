@@ -1,0 +1,5 @@
+# Airflow and its providers. Installed WITH the official Airflow constraints file
+# (make install), which pins Airflow's whole dependency tree to a tested set.
+apache-airflow==2.10.5
+apache-airflow-providers-amazon
+apache-airflow-providers-google

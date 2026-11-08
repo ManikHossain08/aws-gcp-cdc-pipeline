@@ -1,0 +1,61 @@
+{
+  "_comment": "MigrationType + ReplicationTaskSettings. Terraform reads ReplicationTaskSettings from this file; TableMappings come from table_mappings.json.",
+  "ReplicationTaskIdentifier": "cdc-dev-full-load-and-cdc",
+  "MigrationType": "full-load-and-cdc",
+  "ReplicationTaskSettings": {
+    "TargetMetadata": {
+      "SupportLobs": true,
+      "FullLobMode": false,
+      "LimitedSizeLobMode": true,
+      "LobMaxSize": 64,
+      "BatchApplyEnabled": false
+    },
+    "FullLoadSettings": {
+      "TargetTablePrepMode": "DO_NOTHING",
+      "MaxFullLoadSubTasks": 8,
+      "TransactionConsistencyTimeout": 600,
+      "CommitRate": 10000
+    },
+    "Logging": {
+      "EnableLogging": true,
+      "LogComponents": [
+        {"Id": "SOURCE_CAPTURE", "Severity": "LOGGER_SEVERITY_DEFAULT"},
+        {"Id": "SOURCE_UNLOAD", "Severity": "LOGGER_SEVERITY_DEFAULT"},
+        {"Id": "TARGET_LOAD", "Severity": "LOGGER_SEVERITY_DEFAULT"},
+        {"Id": "TARGET_APPLY", "Severity": "LOGGER_SEVERITY_DEFAULT"},
+        {"Id": "TASK_MANAGER", "Severity": "LOGGER_SEVERITY_DEFAULT"}
+      ]
+    },
+    "ChangeProcessingTuning": {
+      "BatchApplyPreserveTransaction": true,
+      "BatchApplyTimeoutMin": 1,
+      "BatchApplyTimeoutMax": 30,
+      "MinTransactionSize": 1000,
+      "CommitTimeout": 1,
+      "MemoryLimitTotal": 1024,
+      "MemoryKeepTime": 60,
+      "StatementCacheSize": 50
+    },
+    "ChangeProcessingDdlHandlingPolicy": {
+      "HandleSourceTableDropped": false,
+      "HandleSourceTableTruncated": false,
+      "HandleSourceTableAltered": true
+    },
+    "ErrorBehavior": {
+      "DataErrorPolicy": "LOG_ERROR",
+      "DataTruncationErrorPolicy": "LOG_ERROR",
+      "DataErrorEscalationPolicy": "SUSPEND_TABLE",
+      "TableErrorPolicy": "SUSPEND_TABLE",
+      "TableErrorEscalationPolicy": "STOP_TASK",
+      "RecoverableErrorCount": -1,
+      "RecoverableErrorInterval": 5,
+      "RecoverableErrorThrottling": true,
+      "RecoverableErrorThrottlingMax": 1800,
+      "ApplyErrorDeletePolicy": "IGNORE_RECORD",
+      "ApplyErrorInsertPolicy": "LOG_ERROR",
+      "ApplyErrorUpdatePolicy": "LOG_ERROR",
+      "FullLoadIgnoreConflicts": true
+    },
+    "ValidationSettings": {"EnableValidation": false}
+  }
+}

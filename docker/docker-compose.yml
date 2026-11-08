@@ -1,0 +1,55 @@
+# Local stack: source PostgreSQL (logical replication) + Airflow (standalone) with the
+# pipeline in local mode (filesystem buckets, local Spark, DuckDB).
+#
+#   cp .env.example .env
+#   docker compose --env-file .env -f docker/docker-compose.yml up --build
+#   UI: http://localhost:8080  (credentials printed by `airflow standalone` in the logs)
+#
+# LocalStack is optional: point RAW_BUCKET_URI / PROCESSED_BUCKET_URI at s3:// buckets and
+# set AWS_ENDPOINT_URL=http://localstack:4566 to exercise the boto3 code paths.
+name: aws-gcp-cdc-pipeline
+
+services:
+  postgres:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: ${SOURCE_DB_NAME:-appdb}
+      POSTGRES_USER: ${SOURCE_DB_ADMIN_USER:-postgres}
+      POSTGRES_PASSWORD: ${SOURCE_DB_ADMIN_PASSWORD:?set SOURCE_DB_ADMIN_PASSWORD in .env}
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=10",
+              "-c", "max_wal_senders=10", "-c", "wal_sender_timeout=0"]
+    ports: ["${SOURCE_DB_PORT:-5432}:5432"]
+    volumes:
+      - ../source_db/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 20
+
+  airflow:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: standalone
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: ../.env
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/pipeline/airflow/dags
+      AIRFLOW__CORE__PLUGINS_FOLDER: /opt/pipeline/airflow/plugins
+      PIPELINE_ENV: local
+      BQ_BACKEND: duckdb
+      RAW_FORMAT: jsonl
+      SOURCE_DB_HOST: postgres
+    ports: ["8080:8080"]
+    volumes:
+      - ../airflow:/opt/pipeline/airflow
+      - ../config:/opt/pipeline/config
+      - ../scripts:/opt/pipeline/scripts
+      - ../local_data:/opt/pipeline/local_data
+
+volumes:
+  pgdata:

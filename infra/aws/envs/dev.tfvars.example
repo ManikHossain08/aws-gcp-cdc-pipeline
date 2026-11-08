@@ -1,0 +1,15 @@
+# Copy to dev.tfvars (git-ignored). Placeholders only — no secrets belong here.
+env        = "dev"
+aws_region = "us-east-1"
+
+create_dms_service_roles = true  # first deployment in the account only
+dms_start_task           = false # true after scripts/bootstrap_aws.sh
+db_deletion_protection   = false # dev only
+
+gcp_project_id     = "your-gcp-project-id"
+gcs_staging_bucket = "your-staging-bucket-name" # infra/gcp output staging_bucket
+
+# e.g. MWAA execution role
+airflow_trusted_principal_arns = ["arn:aws:iam::your-aws-account-id:role/your-airflow-execution-role"]
+
+alert_email = "data-oncall@example.com"
