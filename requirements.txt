@@ -1,18 +1,14 @@
-# Local development / CI environment (Python 3.11). Install with the Airflow constraints:
-#   make install
+# Pipeline, local stand-ins and dev tools (Python 3.11). Installed AFTER Airflow and
+# WITHOUT the Airflow constraints (make install): those constraints pin packages this
+# project needs newer — duckdb (MERGE needs >= 1.4), ruff, mypy.
 # Cloud runtimes install only what they need:
-#   Glue 5.0 Spark job : built-in PySpark/boto3 + PyYAML (--additional-python-modules)
+#   Glue 5.0 Spark job : built-in PySpark 3.5.4 / boto3 + PyYAML (--additional-python-modules)
 #   Glue Python Shell  : google-cloud-storage, google-auth, PyYAML
-#   Airflow workers    : this file minus the dev section
+#   Airflow workers    : requirements-airflow.txt + `pip install .[aws,gcp]`
 -e .
 
-# Orchestration
-apache-airflow==2.10.5
-apache-airflow-providers-amazon
-apache-airflow-providers-google
-
-# Processing / clouds
-pyspark==3.5.3
+# Processing / clouds (versions already chosen by the Airflow constraints are kept)
+pyspark==3.5.4          # = AWS Glue 5.0 Spark version, and the Airflow 2.10.5 constraint
 boto3
 google-cloud-storage
 google-cloud-bigquery
@@ -20,14 +16,14 @@ google-auth
 PyYAML
 
 # Local stand-ins
-duckdb>=1.1
+duckdb>=1.4             # MERGE INTO support
 pyarrow
 psycopg[binary]>=3.2
 
-# Dev
-pytest
-ruff
-mypy
-moto[s3]
+# Dev — pinned so lint/format results are identical locally and in CI
+pytest>=8
+ruff==0.17.3
+mypy==2.4.1
+moto[s3]>=5
 types-PyYAML
 boto3-stubs

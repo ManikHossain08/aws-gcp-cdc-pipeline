@@ -16,10 +16,13 @@ COPY --chown=airflow:root glue ./glue
 COPY --chown=airflow:root transfer ./transfer
 COPY --chown=airflow:root bigquery ./bigquery
 
-# Airflow itself comes from the base image; pin extras with the official constraints.
+# Airflow comes from the base image. Cloud SDKs follow the Airflow constraints; the local
+# stand-ins are installed afterwards without them (the constraints pin duckdb < 1.4, which
+# lacks MERGE INTO).
 RUN pip install --no-cache-dir \
       --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.11.txt" \
-      ".[aws,gcp,local]" pyspark==3.5.3
+      ".[aws,gcp]" pyspark==3.5.4 \
+ && pip install --no-cache-dir "duckdb>=1.4" pyarrow "psycopg[binary]>=3.2"
 
 ENV PYTHONPATH=/opt/pipeline:/opt/pipeline/airflow/plugins \
     PIPELINE_CONFIG_PATH=/opt/pipeline/config/pipeline_config.yaml \

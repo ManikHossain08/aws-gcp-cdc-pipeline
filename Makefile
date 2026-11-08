@@ -22,9 +22,11 @@ help: ## Show targets
 venv: ## Create .venv (Python 3.11) with uv
 	uv venv --python 3.11 $(VENV)
 
-install: ## Install runtime + dev dependencies (Airflow pinned via official constraints)
-	uv pip install --python $(PY) -r requirements.txt \
-	  --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.11.txt
+AIRFLOW_CONSTRAINTS := https://raw.githubusercontent.com/apache/airflow/constraints-2.10.5/constraints-3.11.txt
+
+install: ## Install Airflow (with official constraints), then the pipeline + dev deps
+	uv pip install --python $(PY) -r requirements-airflow.txt --constraint $(AIRFLOW_CONSTRAINTS)
+	uv pip install --python $(PY) -r requirements.txt
 
 lint: ## ruff lint + format check + mypy
 	$(VENV)/bin/ruff check .
