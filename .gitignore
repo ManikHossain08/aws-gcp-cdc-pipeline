@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Local pipeline state
+local_data/
+.airflow_local/
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Secrets / environment
+.env
+*.pem
+*-key.json
+*credentials*.json
+!docs/**
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+infra/**/envs/*.tfvars
+infra/**/envs/*.backend.hcl
+!infra/**/envs/*.example
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/

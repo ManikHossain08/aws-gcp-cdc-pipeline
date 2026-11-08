@@ -1,0 +1,106 @@
+# =============================================================================
+# Pipeline configuration — single source of truth for every component
+# (Glue job, S3->GCS transfer, BigQuery SQL, Airflow DAG, Terraform table lists).
+#
+# ${VAR:-default} is resolved from the environment at load time (cdc_common.config).
+# Defaults target LOCAL mode (filesystem-backed "buckets" + DuckDB); cloud values come
+# from .env / Airflow Variables / Glue job arguments. No credentials live here.
+# =============================================================================
+pipeline:
+  name: aws_rds_cdc_to_bigquery
+  environment: ${PIPELINE_ENV:-local}          # local | cloud
+  delete_strategy: ${CDC_DELETE_STRATEGY:-soft} # soft | hard  (Airflow Variable cdc_delete_strategy overrides)
+  max_rejected_ratio: ${CDC_MAX_REJECTED_RATIO:-0.05}  # validate_glue_output fails above this
+  watermark:
+    # Decision (see ARCHITECTURE.md §7): JSON control file per table in the processed bucket.
+    backend: object_store
+    prefix: control/watermarks
+    # Re-list files modified up to N minutes before the watermark. Safe because the MERGE
+    # is idempotent; protects against objects whose LastModified precedes a listed object.
+    overlap_minutes: ${CDC_WATERMARK_OVERLAP_MINUTES:-15}
+
+storage:
+  # URIs: s3://bucket | gs://bucket | file:///abs/path (local). Relative file:// paths are
+  # resolved against the repository root.
+  raw_uri: ${RAW_BUCKET_URI:-file://local_data/s3/your-raw-bucket-name}
+  raw_prefix: cdc
+  # DMS writes Parquet in AWS. Local simulation writes JSONL (human-readable fixtures).
+  raw_format: ${RAW_FORMAT:-jsonl}              # parquet | jsonl
+  processed_uri: ${PROCESSED_BUCKET_URI:-file://local_data/s3/your-processed-bucket-name}
+  processed_prefixes:
+    validated: validated
+    deduplicated: deduplicated
+    rejected: rejected
+    audit: audit
+    control: control
+  gcs_staging_uri: ${GCS_STAGING_URI:-file://local_data/gcs/your-staging-bucket-name}
+  gcs_prefix: cdc
+
+transfer:
+  # glue_python_shell: Airflow starts the Glue Python Shell job (preferred, see ARCHITECTURE.md)
+  # airflow_worker:   transfer runs inside the Airflow task (alternative)
+  mode: ${TRANSFER_MODE:-airflow_worker}
+  glue_job_name: ${TRANSFER_GLUE_JOB_NAME:-your-transfer-glue-job-name}
+  # Secrets Manager secret holding a GCP *credential configuration* (Workload Identity
+  # Federation, preferred) or a service-account key (fallback). Empty = ADC.
+  gcp_credentials_secret_id: ${GCP_CREDENTIALS_SECRET_ID:-}
+
+glue:
+  transform_job_name: ${GLUE_TRANSFORM_JOB_NAME:-your-cdc-transform-glue-job-name}
+  aws_region: ${AWS_REGION:-us-east-1}
+  poll_seconds: 30
+
+bigquery:
+  backend: ${BQ_BACKEND:-duckdb}                # bigquery | duckdb (local stand-in)
+  duckdb_path: ${DUCKDB_PATH:-local_data/bigquery_local.duckdb}
+  project: ${GCP_PROJECT_ID:-your-gcp-project-id}
+  location: ${BQ_LOCATION:-US}
+  staging_dataset: ${BQ_STAGING_DATASET:-cdc_staging}
+  final_dataset: ${BQ_FINAL_DATASET:-analytics}
+  audit_dataset: ${BQ_AUDIT_DATASET:-cdc_audit}
+  audit_table: cdc_pipeline_audit
+
+# Mapping of DMS column names (as written by the task in dms/) to pipeline semantics.
+cdc_fields:
+  operation: Op                      # I | U | D  (IncludeOpForFullLoad=true => full load = I)
+  cdc_timestamp: _dms_commit_ts      # $AR_H_COMMIT_TIMESTAMP
+  ingest_timestamp: _dms_ingest_ts   # TimestampColumnName; fallback for full-load rows
+  sequence: _dms_change_seq          # $AR_H_CHANGE_SEQ (35-digit, monotonic)
+  transaction_id: _dms_transaction_id  # $AR_H_TRANSACTION_ID (where the source provides it)
+  source_table: _dms_source_table    # $AR_M_SOURCE_TABLE_NAME
+
+# Logical types: int64 | string | bool | float64 | date | timestamp | decimal(p,s) | json
+tables:
+  - name: customers
+    source_schema: public
+    primary_key: [customer_id]
+    staging_table: customers_cdc_stage
+    final_table: customers
+    partition_field: created_at       # final table: DAY partition on DATE(created_at)
+    cluster_by: [customer_id]
+    columns:
+      - {name: customer_id,  type: int64,     nullable: false}
+      - {name: email,        type: string,    nullable: false, pii: true}
+      - {name: full_name,    type: string,    pii: true}
+      - {name: country_code, type: string}
+      - {name: status,       type: string,    nullable: false}
+      - {name: created_at,   type: timestamp, nullable: false}
+      - {name: updated_at,   type: timestamp}
+
+  - name: orders
+    source_schema: public
+    primary_key: [order_id]
+    staging_table: orders_cdc_stage
+    final_table: orders
+    partition_field: order_date
+    cluster_by: [customer_id, order_id]
+    columns:
+      - {name: order_id,     type: int64,           nullable: false}
+      - {name: customer_id,  type: int64,           nullable: false}
+      - {name: order_date,   type: date,            nullable: false}
+      - {name: status,       type: string,          nullable: false}
+      - {name: total_amount, type: "decimal(12,2)"}
+      - {name: currency,     type: string}
+      - {name: metadata,     type: json}
+      - {name: created_at,   type: timestamp,       nullable: false}
+      - {name: updated_at,   type: timestamp}

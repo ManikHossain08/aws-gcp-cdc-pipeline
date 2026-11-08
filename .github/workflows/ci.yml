@@ -1,0 +1,39 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "17"}
+      - uses: astral-sh/setup-uv@v3
+      - run: uv venv --python 3.11 .venv && make install
+      - run: make lint
+      - run: make test
+      - run: make local-test      # full simulated pipeline + reference-model verification
+      - run: make sql && git diff --exit-code bigquery/sql   # committed SQL is current
+
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: {stack: [aws, gcp]}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: {terraform_version: 1.9.8}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: mkdir -p dist && zip -qr dist/pipeline_libs.zip cdc_common glue transfer && pip wheel --no-deps -w dist .
+      - run: terraform fmt -check -recursive && terraform init -backend=false -input=false && terraform validate
+        working-directory: infra/${{ matrix.stack }}
+# Deploys run from a separate, environment-protected workflow using OIDC
+# (aws-actions/configure-aws-credentials, google-github-actions/auth) — no static keys.

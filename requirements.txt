@@ -1,0 +1,33 @@
+# Local development / CI environment (Python 3.11). Install with the Airflow constraints:
+#   make install
+# Cloud runtimes install only what they need:
+#   Glue 5.0 Spark job : built-in PySpark/boto3 + PyYAML (--additional-python-modules)
+#   Glue Python Shell  : google-cloud-storage, google-auth, PyYAML
+#   Airflow workers    : this file minus the dev section
+-e .
+
+# Orchestration
+apache-airflow==2.10.5
+apache-airflow-providers-amazon
+apache-airflow-providers-google
+
+# Processing / clouds
+pyspark==3.5.3
+boto3
+google-cloud-storage
+google-cloud-bigquery
+google-auth
+PyYAML
+
+# Local stand-ins
+duckdb>=1.1
+pyarrow
+psycopg[binary]>=3.2
+
+# Dev
+pytest
+ruff
+mypy
+moto[s3]
+types-PyYAML
+boto3-stubs

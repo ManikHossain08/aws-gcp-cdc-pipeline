@@ -1,0 +1,26 @@
+{
+  "_comment": "Reference for `aws dms create-endpoint`. DMS S3 targets support CSV and Parquet only; Parquet is used. Layout: s3://<raw>/cdc/<schema>/<table>/LOAD*.parquet and .../YYYY/MM/DD/<ts>.parquet",
+  "EndpointIdentifier": "cdc-dev-target-s3",
+  "EndpointType": "target",
+  "EngineName": "s3",
+  "S3Settings": {
+    "BucketName": "your-raw-bucket-name",
+    "BucketFolder": "cdc",
+    "ServiceAccessRoleArn": "arn:aws:iam::your-aws-account-id:role/cdc-dev-dms-s3-target",
+    "DataFormat": "parquet",
+    "ParquetVersion": "parquet-2-0",
+    "CompressionType": "GZIP",
+    "EncryptionMode": "SSE_KMS",
+    "ServerSideEncryptionKmsKeyId": "arn:aws:kms:us-east-1:your-aws-account-id:key/your-kms-key-id",
+    "IncludeOpForFullLoad": true,
+    "CdcInsertsAndUpdates": false,
+    "TimestampColumnName": "_dms_ingest_ts",
+    "AddColumnName": true,
+    "DatePartitionEnabled": true,
+    "DatePartitionSequence": "YYYYMMDD",
+    "DatePartitionDelimiter": "SLASH",
+    "CdcMaxBatchInterval": 60,
+    "CdcMinFileSize": 32000,
+    "PreserveTransactions": false
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "_comment": "Reference for `aws dms create-endpoint --cli-input-json file://dms/dms_source_endpoint.json`. Terraform (infra/aws/dms.tf) is the deployed source of truth. Replace placeholders.",
+  "EndpointIdentifier": "cdc-dev-source-pg",
+  "EndpointType": "source",
+  "EngineName": "postgres",
+  "DatabaseName": "appdb",
+  "SslMode": "require",
+  "PostgreSQLSettings": {
+    "SecretsManagerSecretId": "arn:aws:secretsmanager:us-east-1:your-aws-account-id:secret:cdc-dev/dms/source-postgres",
+    "SecretsManagerAccessRoleArn": "arn:aws:iam::your-aws-account-id:role/cdc-dev-dms-secrets",
+    "SlotName": "dms_cdc_slot",
+    "PluginName": "test_decoding",
+    "HeartbeatEnable": true,
+    "HeartbeatFrequency": 5,
+    "CaptureDdls": false,
+    "MapLongVarcharAs": "wstring"
+  }
+}

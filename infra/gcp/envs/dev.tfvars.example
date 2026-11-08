@@ -1,0 +1,8 @@
+env            = "dev"
+gcp_project_id = "your-gcp-project-id"
+region         = "us-east4"
+bq_location    = "us-east4"
+
+aws_account_id         = "your-aws-account-id"
+aws_transfer_role_name = "cdc-dev-glue-transfer" # name part of infra/aws output glue_transfer_role_arn
+aws_airflow_role_name  = ""                      # set if Airflow runs on AWS (MWAA)

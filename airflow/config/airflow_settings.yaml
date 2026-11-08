@@ -1,0 +1,28 @@
+# Airflow connections / variables for the aws_rds_cdc_to_bigquery DAG.
+# Format follows the Astro CLI `airflow_settings.yaml` convention; for plain Airflow apply
+# the same values with `airflow variables set` / `airflow connections add` (docs/airflow_setup.md).
+# No secrets here: connections use the worker's IAM role / Workload Identity.
+airflow:
+  connections:
+    - conn_id: aws_default
+      conn_type: aws
+      conn_extra:
+        region_name: us-east-1
+        # role_arn: arn:aws:iam::your-aws-account-id:role/cdc-dev-airflow   # if assuming a role
+    - conn_id: google_cloud_default
+      conn_type: google_cloud_platform
+      conn_extra:
+        project: your-gcp-project-id
+        # Credentials: Application Default Credentials / WIF credential config file path
+        # key_path: /opt/airflow/secrets/gcp-wif-credential-config.json
+
+  variables:
+    - variable_name: cdc_delete_strategy
+      variable_value: soft          # soft | hard (DAG param delete_strategy overrides)
+    - variable_name: cdc_alert_slack_channel
+      variable_value: "#data-alerts" # informational; the webhook URL lives in a secret backend
+
+  pools:
+    - pool_name: cdc_glue
+      pool_slot: 1
+      pool_description: Serialises Glue job submissions for the CDC pipeline
